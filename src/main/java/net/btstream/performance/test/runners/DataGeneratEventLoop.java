@@ -53,7 +53,9 @@ public class DataGeneratEventLoop extends EventLoop {
             TbGps gpsData = new TbGps();
             gpsData.setGpsId(String.format("%d", this.idPrefix * 10000 + i));
             // 生成GPS坐标数据
+//            gpsData.setLatitudeflag(0);
             gpsData.setLatitude(90 * Math.random());
+//            gpsData.setLongtitudeflag(0);
             gpsData.setLongtitude(180 * Math.random());
             gpsData.setAltitude(1500 * Math.random());
             gpsData.setAzimuth(180 * Math.random());

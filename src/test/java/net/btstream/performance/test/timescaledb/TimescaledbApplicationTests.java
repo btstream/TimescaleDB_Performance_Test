@@ -6,9 +6,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.List;
+import java.lang.reflect.Field;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -21,10 +22,22 @@ public class TimescaledbApplicationTests {
     @Autowired
     GpsMapper gpsMapper;
 
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
     @Test
     public void testSelectGps() {
-        List<TbGps> allGpsData = gpsMapper.selectList(null);
-        System.out.println(allGpsData.size());
+        Integer totalNumber = jdbcTemplate.queryForObject("select count(*) from tb_gps", Integer.class);
+        System.out.println(totalNumber);
     }
 
+    @Test
+    public void getMembers() throws IllegalAccessException {
+        Field[] s = TbGps.class.getDeclaredFields();
+        TbGps t = new TbGps();
+        for (Field f : s) {
+            f.setAccessible(true);
+            System.out.println(f.getName() + ":" + f.get(t));
+        }
+    }
 }

@@ -11,6 +11,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import javax.annotation.Resource;
@@ -31,6 +32,9 @@ public class TimescaledbApplication implements CommandLineRunner {
 
     @Resource
     GpsMapper gpsMapper;
+
+    @Resource
+    JdbcTemplate jdbcTemplate;
 
     public static void main(String[] args) {
         SpringApplication.run(TimescaledbApplication.class, args);
@@ -60,6 +64,8 @@ public class TimescaledbApplication implements CommandLineRunner {
         for (int i = 0; i < 4; i++) {
             DataConsumerEventLoop c = new DataConsumerEventLoop(queue, consumerEventLoop);
             c.setGpsMapper(gpsMapper);
+            c.setJdbcTemplate(jdbcTemplate);
+            c.setUseJdbcTemplate();
             c.start();
         }
 
