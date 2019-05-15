@@ -1,7 +1,9 @@
 package net.btstream.performance.test.runners;
 
+import lombok.Getter;
+import lombok.Setter;
 import net.btstream.performance.test.db.bean.TbGps;
-import net.btstream.performance.test.db.mapper.GpsMapper;
+import net.btstream.performance.test.utils.PollUtils;
 import net.btstream.performance.test.utils.Statistics;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,90 +12,39 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class DataConsumerEventLoop extends EventLoop {
+public class JdbcTemplateConsumerEventLoop extends EventLoop {
 
     private final BlockingQueue<TbGps> DATA_QUEUE;
     private final Statistics STA = new Statistics();
 
+    @Getter
     private int batchSize = 20;
+
+    @Setter
     private long pollTimeout = 200;
 
-
-    // mybatis mapper
-    private GpsMapper gpsMapper;
-
-    // jdbc template
+    @Setter
     private JdbcTemplate jdbcTemplate;
 
-    private boolean useJdbcTemplate = false;
-
-    public DataConsumerEventLoop(BlockingQueue<TbGps> queue, EventLoopGroup eventLoopGroup) {
+    public JdbcTemplateConsumerEventLoop(EventLoopGroup eventLoopGroup, BlockingQueue<TbGps> queue) {
         super(eventLoopGroup);
         this.DATA_QUEUE = queue;
-    }
-
-    public void setGpsMapper(GpsMapper gpsMapper) {
-        this.gpsMapper = gpsMapper;
-    }
-
-    public void setBatchSize(int batchSize) {
-        this.batchSize = batchSize;
-    }
-
-    public void setPollTimeout(long pollTimeout) {
-        this.pollTimeout = pollTimeout;
-    }
-
-    public void setUseJdbcTemplate() {
-        this.useJdbcTemplate = true;
-    }
-
-    public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public void execute() {
         try {
-            List<TbGps> record = new LinkedList<>();
-            while (record.size() < batchSize) {
-                // 超时之后直接跳出，直接入库
-                TbGps data = DATA_QUEUE.poll(pollTimeout, TimeUnit.MICROSECONDS);
-                if (data == null) {
-                    break;
-                } else {
-                    data.setCreatetime(Timestamp.valueOf(LocalDateTime.now()));
-
-                    record.add(data);
-                }
-
+            List<TbGps> records = PollUtils.pollRecords(DATA_QUEUE, batchSize, pollTimeout, TimeUnit.MILLISECONDS);
+            if (records.size() > 0) {
+                saveDataWithJdbcTemplate(records);
             }
-            if (record.size() > 0) {
-                if (!useJdbcTemplate) {
-                    saveData(record);
-                } else {
-                    saveDataWithJdbcTemplate(record);
-                }
-            }
-
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    void saveData(List<TbGps> data) {
-        for (Object gps : data) {
-            gpsMapper.insert((TbGps) gps);
-        }
-        STA.increament(data.size());
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
@@ -134,5 +85,4 @@ public class DataConsumerEventLoop extends EventLoop {
         }
         STA.increament(data.size());
     }
-
 }
