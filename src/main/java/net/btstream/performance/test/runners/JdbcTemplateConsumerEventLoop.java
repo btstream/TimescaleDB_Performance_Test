@@ -1,10 +1,10 @@
 package net.btstream.performance.test.runners;
 
-import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.btstream.performance.test.db.bean.TbGps;
 import net.btstream.performance.test.utils.PollUtils;
-import net.btstream.performance.test.utils.Statistics;
+import net.btstream.performance.test.utils.StatUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -16,12 +16,13 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class JdbcTemplateConsumerEventLoop extends EventLoop {
 
     private final BlockingQueue<TbGps> DATA_QUEUE;
-    private final Statistics STA = new Statistics();
+    private final StatUtils STA = new StatUtils();
 
-    @Getter
+    @Setter
     private int batchSize = 20;
 
     @Setter
@@ -43,7 +44,7 @@ public class JdbcTemplateConsumerEventLoop extends EventLoop {
                 saveDataWithJdbcTemplate(records);
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.info("{}", e.getMessage());
         }
     }
 
@@ -82,6 +83,7 @@ public class JdbcTemplateConsumerEventLoop extends EventLoop {
             });
         } catch (Exception e) {
             e.printStackTrace();
+            throw e;
         }
         STA.increament(data.size());
     }

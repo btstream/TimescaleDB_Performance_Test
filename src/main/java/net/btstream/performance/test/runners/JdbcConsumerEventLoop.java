@@ -1,5 +1,12 @@
 package net.btstream.performance.test.runners;
 
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import net.btstream.performance.test.db.bean.TbGps;
+import net.btstream.performance.test.utils.PollUtils;
+import net.btstream.performance.test.utils.StatUtils;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -7,17 +14,11 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import javax.sql.DataSource;
-
-import lombok.Setter;
-import net.btstream.performance.test.db.bean.TbGps;
-import net.btstream.performance.test.utils.PollUtils;
-import net.btstream.performance.test.utils.Statistics;
-
+@Slf4j
 public class JdbcConsumerEventLoop extends EventLoop {
 
     private final BlockingQueue<TbGps> DATA_QUEUE;
-    private final Statistics STA = new Statistics();
+    private final StatUtils STA = new StatUtils();
 
     @Setter
     private DataSource dataSource;
@@ -40,8 +41,10 @@ public class JdbcConsumerEventLoop extends EventLoop {
             if (records.size() > 0) {
                 save(records);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (InterruptedException e) {
+            log.info("{}", e.getMessage());
+        } catch (SQLException e) {
+            log.error("{}", e.getMessage(), e);
         }
     }
 

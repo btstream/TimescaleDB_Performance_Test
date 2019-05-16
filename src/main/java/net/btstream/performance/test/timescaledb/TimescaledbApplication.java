@@ -1,17 +1,20 @@
 package net.btstream.performance.test.timescaledb;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
-import java.time.Duration;
-import java.time.LocalDateTime;
-
+import lombok.extern.slf4j.Slf4j;
+import net.btstream.performance.test.utils.StatUtils;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import lombok.extern.slf4j.Slf4j;
+import javax.annotation.Resource;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.Executor;
 
 @SpringBootApplication
 @MapperScan("net.btstream.performance.test.db.mapper")
@@ -24,6 +27,19 @@ public class TimescaledbApplication implements CommandLineRunner {
     @Value("${run.time:5h}")
     String runTime;
 
+    @Value("${sample.time:10}")
+    int sampleTime;
+
+    @Resource(name = "Generator")
+    Executor generator;
+
+    @Resource(name = "Consumer")
+    Executor consumer;
+
+    private static final String RECORD_TEMPLATE = "%s,%d,%d\n";
+    private static StatUtils statUtils = new StatUtils();
+    private static DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     public static void main(String[] args) {
         SpringApplication.run(TimescaledbApplication.class, args);
     }
@@ -33,7 +49,7 @@ public class TimescaledbApplication implements CommandLineRunner {
 
         // 处理测试时间参数，默认跑5小时
         String inputedTu = runTime.substring(runTime.length() - 1);
-        String runTimeNum = runTime.substring(0, runTime.length());
+        String runTimeNum = runTime.substring(0, runTime.length() - 1);
         Duration rd = null;
         try {
             int rt = Integer.parseInt(runTimeNum);
@@ -53,18 +69,25 @@ public class TimescaledbApplication implements CommandLineRunner {
 
         assert rd != null;
 
-        try (BufferedOutputStream resultOut = new BufferedOutputStream(new FileOutputStream(resultFile));) {
-
+        try (BufferedWriter resultOut = new BufferedWriter(new FileWriter(resultFile))) {
             LocalDateTime startTime = LocalDateTime.now();
+            long startNum = 0;
             while (true) {
-
-                // TODO: 实现日志输出
-
+                Thread.sleep(sampleTime * 1000);
+                long curNum = statUtils.get();
+                long tp = (curNum - startNum) / sampleTime;
+                String record = String.format(RECORD_TEMPLATE, df.format(LocalDateTime.now()), tp, curNum);
+                log.info("{}", tp);
+                resultOut.write(record);
+                resultOut.flush();
+                startNum = curNum;
                 if (Duration.between(startTime, LocalDateTime.now()).compareTo(rd) > 0) {
                     break;
                 }
             }
         }
-
+//        ((ThreadPoolTaskExecutor) generator).shutdown();
+//        ((ThreadPoolTaskExecutor) consumer).shutdown();
+        System.exit(0);
     }
 }

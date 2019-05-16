@@ -2,6 +2,8 @@ package net.btstream.performance.test.utils;
 
 import net.btstream.performance.test.db.bean.TbGps;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -15,6 +17,7 @@ public class PollUtils {
             if (gps == null) {
                 break;
             } else {
+                gps.setCreatetime(Timestamp.valueOf(LocalDateTime.now()));
                 result.add(gps);
             }
         }
