@@ -1,17 +1,18 @@
 package net.btstream.performance.test.runners;
 
-import lombok.Setter;
-import net.btstream.performance.test.db.bean.TbGps;
-import net.btstream.performance.test.utils.PollUtils;
-import net.btstream.performance.test.utils.Statistics;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import javax.sql.DataSource;
+
+import lombok.Setter;
+import net.btstream.performance.test.db.bean.TbGps;
+import net.btstream.performance.test.utils.PollUtils;
+import net.btstream.performance.test.utils.Statistics;
 
 public class JdbcConsumerEventLoop extends EventLoop {
 
@@ -78,6 +79,7 @@ public class JdbcConsumerEventLoop extends EventLoop {
             }
             preparedStatement.executeBatch();
             con.commit();
+            STA.increament(record.size());
         } catch (Exception e) {
             e.printStackTrace();
             if (con != null) {

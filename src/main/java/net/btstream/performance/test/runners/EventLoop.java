@@ -17,11 +17,17 @@ public abstract class EventLoop implements Runnable {
     @Override
     public void run() {
         this.execute();
-        this.nextLoop();
+        if (!shutdown) {
+            this.nextLoop();
+        }
     }
 
     private void nextLoop() {
         this.eventLoopGroup.submit(this);
+    }
+
+    public void shutdownGracefully() {
+        this.shutdown = true;
     }
 
     public abstract void execute();
